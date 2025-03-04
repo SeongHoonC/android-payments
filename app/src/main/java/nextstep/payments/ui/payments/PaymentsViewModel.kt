@@ -13,7 +13,7 @@ class PaymentsViewModel(
     private val _uiState: MutableStateFlow<PaymentsUiState> = MutableStateFlow(PaymentsUiState.Empty)
     val uiState: StateFlow<PaymentsUiState> = _uiState.asStateFlow()
 
-    fun getCards() {
+    fun fetchCards() {
         val cards = repository.cards
         val firstCard = cards.firstOrNull()
 

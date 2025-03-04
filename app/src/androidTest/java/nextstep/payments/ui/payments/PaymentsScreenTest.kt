@@ -1,9 +1,21 @@
 package nextstep.payments.ui.payments
 
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onChild
+import androidx.compose.ui.test.onChildren
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onSibling
+import androidx.compose.ui.test.onSiblings
 import nextstep.payments.model.CreditCard
+import nextstep.payments.model.IssuingBank
 import org.junit.Rule
 import org.junit.Test
 
@@ -36,7 +48,8 @@ class PaymentsScreenTest {
             cardNumber = "1234567812345678",
             expiredDate = "1223",
             ownerName = "홍길동",
-            password = "1234"
+            password = "1234",
+            IssuingBank.SHINHAN_CARD,
         )
 
         composeTestRule.setContent {
@@ -50,9 +63,16 @@ class PaymentsScreenTest {
         composeTestRule.onNodeWithText("1234 - 5678 - **** - ****").assertExists()
         composeTestRule.onNodeWithText("홍길동").assertExists()
 
-        // then - 카드_추가_UI는_목록_하단에_노출된다.
+        // then - 카드_추가_UI는_목록에_노출된다.
         composeTestRule.onNodeWithContentDescription("카드 추가 버튼").assertExists()
         composeTestRule.onNodeWithText("추가").assertDoesNotExist()
+
+        // then - 카드_추가_UI는_목록_하단에_노출된다.
+        composeTestRule
+            .onNodeWithTag("PaymentsOneScreen")
+            .onChildren() // 자식들
+            .onLast()
+            .assertContentDescriptionEquals("카드 추가 버튼")
     }
 
     @Test
@@ -63,13 +83,15 @@ class PaymentsScreenTest {
                 cardNumber = "1234567812345678",
                 expiredDate = "1223",
                 ownerName = "홍길동",
-                password = "1234"
+                password = "1234",
+                IssuingBank.KB_CARD,
             ),
             CreditCard(
                 cardNumber = "1111222233334444",
                 expiredDate = "1223",
                 ownerName = "최성훈",
-                password = "1234"
+                password = "1234",
+                IssuingBank.KAKAO_BANK,
             )
         )
 

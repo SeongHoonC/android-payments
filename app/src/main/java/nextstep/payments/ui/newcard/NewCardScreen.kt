@@ -8,10 +8,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -20,14 +26,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import nextstep.payments.R
-import nextstep.payments.model.CreditCard
+import nextstep.payments.model.IssuingBank
 import nextstep.payments.ui.components.PaymentCard
 import nextstep.payments.ui.theme.PaymentsTheme
 
 @Composable
 fun NewCardScreen(
-    navigateToPayments: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: NewCardViewModel = viewModel(),
@@ -36,11 +43,19 @@ fun NewCardScreen(
     val expiredDate by viewModel.expiredDate.collectAsStateWithLifecycle()
     val ownerName by viewModel.ownerName.collectAsStateWithLifecycle()
     val password by viewModel.password.collectAsStateWithLifecycle()
-    val cardAdded by viewModel.cardAdded.collectAsStateWithLifecycle()
+    val issuingBank by viewModel.issuingBank.collectAsStateWithLifecycle()
+    var showBottomSheet by remember { mutableStateOf(true) }
 
-    LaunchedEffect(cardAdded) {
-        if (cardAdded) {
-            navigateToPayments()
+    val snackBarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        viewModel.effect.collectLatest {
+            when (it) {
+                is NewCardEffect.ShowError -> {
+                    coroutineScope.launch { snackBarHostState.showSnackbar(it.message) }
+                }
+            }
         }
     }
 
@@ -49,6 +64,8 @@ fun NewCardScreen(
         expiredDate = expiredDate,
         ownerName = ownerName,
         password = password,
+        issuingBank = issuingBank,
+        snackBarHostState = snackBarHostState,
         setCardNumber = viewModel::setCardNumber,
         setExpiredDate = viewModel::setExpiredDate,
         setOwnerName = viewModel::setOwnerName,
@@ -57,6 +74,13 @@ fun NewCardScreen(
         onSaveClick = viewModel::onSaveClick,
         modifier = modifier,
     )
+
+    if (showBottomSheet) {
+        IssuingBankBottomSheet(
+            onDismissRequest = { showBottomSheet = false },
+            onIssuingBankSelected = viewModel::setIssuingBank,
+        )
+    }
 }
 
 @Composable
@@ -65,6 +89,8 @@ fun NewCardScreen(
     expiredDate: String,
     ownerName: String,
     password: String,
+    issuingBank: IssuingBank?,
+    snackBarHostState: SnackbarHostState,
     setCardNumber: (String) -> Unit,
     setExpiredDate: (String) -> Unit,
     setOwnerName: (String) -> Unit,
@@ -75,7 +101,8 @@ fun NewCardScreen(
 ) {
     Scaffold(
         topBar = { NewCardTopBar(onBackClick = onBackClick, onSaveClick = onSaveClick) },
-        modifier = modifier
+        modifier = modifier,
+        snackbarHost = { SnackbarHost(hostState = snackBarHostState) }
     ) { innerPadding ->
         Column(
             verticalArrangement = Arrangement.spacedBy(18.dp),
@@ -87,12 +114,10 @@ fun NewCardScreen(
             Spacer(modifier = Modifier.height(14.dp))
 
             PaymentCard(
-                creditCard = CreditCard(
-                    cardNumber = cardNumber,
-                    expiredDate = expiredDate,
-                    ownerName = ownerName,
-                    password = password,
-                ),
+                cardNumber = cardNumber,
+                expiredDate = expiredDate,
+                ownerName = ownerName,
+                issuingBank = issuingBank
             )
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -146,7 +171,9 @@ private fun NewCardScreenPreview() {
             expiredDate = "12 / 34",
             ownerName = "홍길동",
             password = "1234",
+            issuingBank = IssuingBank.SHINHAN_CARD,
             setCardNumber = {},
+            snackBarHostState = SnackbarHostState(),
             setExpiredDate = {},
             setOwnerName = {},
             setPassword = {},

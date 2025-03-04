@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight.Companion.W700
 import androidx.compose.ui.tooling.preview.Preview
@@ -29,6 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import nextstep.payments.R
 import nextstep.payments.model.CreditCard
+import nextstep.payments.model.IssuingBank
 import nextstep.payments.ui.components.PaymentCard
 import nextstep.payments.ui.components.PaymentCardAddition
 import nextstep.payments.ui.newcard.NewCardActivity
@@ -46,7 +48,7 @@ fun PaymentsScreen(
         ActivityResultContracts.StartActivityForResult()
     ) {
         if (it.resultCode == Activity.RESULT_OK) {
-            viewModel.getCards()
+            viewModel.fetchCards()
         }
     }
 
@@ -113,13 +115,14 @@ private fun PaymentsOneScreen(
         Column(
             Modifier
                 .padding(innerPadding)
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .testTag("PaymentsOneScreen"),
             horizontalAlignment = CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(12.dp))
             PaymentCard(uiState.card)
             Spacer(modifier = Modifier.height(32.dp))
-            PaymentCardAddition(onClick = onAddCardClick)
+            PaymentCardAddition(onClick = onAddCardClick, modifier = Modifier.testTag("카드 추가 버튼"))
         }
     }
 }
@@ -142,24 +145,24 @@ private fun PaymentsManyScreen(
                 .fillMaxSize(),
             contentPadding = PaddingValues(vertical = 16.dp),
         ) {
-            items(uiState.cards) { card ->
+            items(uiState.cards, key = { it.cardNumber }) { card ->
                 PaymentCard(card)
             }
         }
     }
 }
 
-@Preview
+@Preview(name = "카드가 없는 경우")
 @Composable
-private fun PaymentsEmptyScreenPreview() {
+private fun Preview1() {
     PaymentsTheme {
         PaymentsEmptyScreen(onAddCardClick = {})
     }
 }
 
-@Preview
+@Preview(name = "카드가 한 개인 경우")
 @Composable
-private fun PaymentsOneScreenPreview() {
+private fun Preview2() {
     PaymentsTheme {
         PaymentsOneScreen(
             uiState = PaymentsUiState.One(
@@ -167,7 +170,8 @@ private fun PaymentsOneScreenPreview() {
                     cardNumber = "1234567812345678",
                     expiredDate = "0101",
                     ownerName = "홍길동",
-                    password = "123"
+                    password = "123",
+                    issuingBank = IssuingBank.HANA_CARD,
                 )
             ),
             onAddCardClick = {}
@@ -175,9 +179,9 @@ private fun PaymentsOneScreenPreview() {
     }
 }
 
-@Preview
+@Preview(name = "카드가 여러 개인 경우")
 @Composable
-private fun PaymentsManyScreenPreview() {
+private fun Preview3() {
     PaymentsTheme {
         PaymentsManyScreen(
             uiState = PaymentsUiState.Many(
@@ -186,13 +190,15 @@ private fun PaymentsManyScreenPreview() {
                         cardNumber = "1234567812345678",
                         expiredDate = "1231",
                         ownerName = "홍길동",
-                        password = "123"
+                        password = "123",
+                        issuingBank = IssuingBank.KB_CARD
                     ),
                     CreditCard(
-                        cardNumber = "1234567812345678",
+                        cardNumber = "1234567812345648",
                         expiredDate = "1231",
                         ownerName = "홍길동",
-                        password = "123"
+                        password = "123",
+                        issuingBank = IssuingBank.BC_CARD
                     ),
                 )
             ),
