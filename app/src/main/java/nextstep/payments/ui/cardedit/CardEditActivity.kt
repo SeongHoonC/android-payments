@@ -14,12 +14,20 @@ class CardEditActivity : ComponentActivity() {
 
         val cardId = intent.getLongExtra(KEY_CARD_ID, -1)
         setContent {
-            CardEditScreen(cardId = cardId, onBackClick = ::finish)
+            CardEditScreen(
+                cardId = cardId,
+                onBackClick = ::finish,
+                navigateToPayments = ::navigateToPayments
+            )
         }
     }
 
-    companion object {
+    private fun navigateToPayments() {
+        setResult(RESULT_OK)
+        finish()
+    }
 
+    companion object {
         private const val KEY_CARD_ID = "KEY_CARD_ID"
 
         fun getIntent(context: Context, cardId: Long): Intent {

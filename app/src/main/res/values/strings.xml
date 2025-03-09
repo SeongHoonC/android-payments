@@ -21,5 +21,6 @@
 
     <!-- edit card -->
     <string name="edit_card_top_bar_title">카드 수정</string>
+    <string name="card_edit_save_card_success">카드를 수정했습니다.</string>
 
 </resources>
