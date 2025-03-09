@@ -3,6 +3,7 @@ package nextstep.payments.ui.payments
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -31,6 +32,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import nextstep.payments.R
 import nextstep.payments.model.CreditCard
 import nextstep.payments.model.IssuingBank
+import nextstep.payments.ui.cardedit.CardEditActivity
 import nextstep.payments.ui.components.PaymentCard
 import nextstep.payments.ui.components.PaymentCardAddition
 import nextstep.payments.ui.newcard.NewCardActivity
@@ -44,7 +46,7 @@ fun PaymentsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val launcher = rememberLauncherForActivityResult(
+    val newCardLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
         if (it.resultCode == Activity.RESULT_OK) {
@@ -52,12 +54,30 @@ fun PaymentsScreen(
         }
     }
 
+    val cardEditLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (it.resultCode == Activity.RESULT_OK) {
+            viewModel.fetchCards()
+        }
+    }
+
+
     val localContext = LocalContext.current
-    val onAddCardClick = { launcher.launch(NewCardActivity.getIntent(localContext)) }
+    val onAddCardClick = { newCardLauncher.launch(NewCardActivity.getIntent(localContext)) }
+    val onEditCardClick = { cardId: Long ->
+        cardEditLauncher.launch(
+            CardEditActivity.getIntent(
+                context = localContext,
+                cardId = cardId
+            )
+        )
+    }
 
     PaymentsScreen(
         uiState = uiState,
         onAddCardClick = onAddCardClick,
+        onEditCardClick = onEditCardClick,
         modifier = modifier
     )
 }
@@ -66,12 +86,28 @@ fun PaymentsScreen(
 fun PaymentsScreen(
     uiState: PaymentsUiState,
     onAddCardClick: () -> Unit,
+    onEditCardClick: (id: Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (uiState) {
-        is PaymentsUiState.Empty -> PaymentsEmptyScreen(onAddCardClick, modifier)
-        is PaymentsUiState.One -> PaymentsOneScreen(uiState, onAddCardClick, modifier)
-        is PaymentsUiState.Many -> PaymentsManyScreen(uiState, onAddCardClick, modifier)
+        is PaymentsUiState.Empty -> PaymentsEmptyScreen(
+            onAddCardClick = onAddCardClick,
+            modifier = modifier
+        )
+
+        is PaymentsUiState.One -> PaymentsOneScreen(
+            uiState = uiState,
+            onAddCardClick = onAddCardClick,
+            onCardClick = onEditCardClick,
+            modifier = modifier
+        )
+
+        is PaymentsUiState.Many -> PaymentsManyScreen(
+            uiState = uiState,
+            onAddCardClick = onAddCardClick,
+            onCardClick = onEditCardClick,
+            modifier = modifier
+        )
     }
 }
 
@@ -106,6 +142,7 @@ private fun PaymentsEmptyScreen(
 private fun PaymentsOneScreen(
     uiState: PaymentsUiState.One,
     onAddCardClick: () -> Unit,
+    onCardClick: (id: Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -120,7 +157,10 @@ private fun PaymentsOneScreen(
             horizontalAlignment = CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(12.dp))
-            PaymentCard(uiState.card)
+            PaymentCard(
+                creditCard = uiState.card,
+                modifier = Modifier.clickable(onClick = { onCardClick(uiState.card.id) })
+            )
             Spacer(modifier = Modifier.height(32.dp))
             PaymentCardAddition(onClick = onAddCardClick, modifier = Modifier.testTag("카드 추가 버튼"))
         }
@@ -131,6 +171,7 @@ private fun PaymentsOneScreen(
 private fun PaymentsManyScreen(
     uiState: PaymentsUiState.Many,
     onAddCardClick: () -> Unit,
+    onCardClick: (id: Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -146,7 +187,7 @@ private fun PaymentsManyScreen(
             contentPadding = PaddingValues(vertical = 16.dp),
         ) {
             items(uiState.cards, key = { it.cardNumber }) { card ->
-                PaymentCard(card)
+                PaymentCard(card, modifier = Modifier.clickable(onClick = { onCardClick(card.id) }))
             }
         }
     }
@@ -167,6 +208,7 @@ private fun Preview2() {
         PaymentsOneScreen(
             uiState = PaymentsUiState.One(
                 CreditCard(
+                    id = -1L,
                     cardNumber = "1234567812345678",
                     expiredDate = "0101",
                     ownerName = "홍길동",
@@ -174,7 +216,8 @@ private fun Preview2() {
                     issuingBank = IssuingBank.HANA_CARD,
                 )
             ),
-            onAddCardClick = {}
+            onAddCardClick = {},
+            onCardClick = {}
         )
     }
 }
@@ -187,6 +230,7 @@ private fun Preview3() {
             uiState = PaymentsUiState.Many(
                 listOf(
                     CreditCard(
+                        id = -1L,
                         cardNumber = "1234567812345678",
                         expiredDate = "1231",
                         ownerName = "홍길동",
@@ -194,6 +238,7 @@ private fun Preview3() {
                         issuingBank = IssuingBank.KB_CARD
                     ),
                     CreditCard(
+                        id = -1L,
                         cardNumber = "1234567812345648",
                         expiredDate = "1231",
                         ownerName = "홍길동",
@@ -202,7 +247,8 @@ private fun Preview3() {
                     ),
                 )
             ),
-            onAddCardClick = {}
+            onAddCardClick = {},
+            onCardClick = {}
         )
     }
 }

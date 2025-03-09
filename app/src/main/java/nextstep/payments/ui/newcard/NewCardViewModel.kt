@@ -77,6 +77,7 @@ class NewCardViewModel(private val repository: PaymentCardsRepository = PaymentC
     private fun saveCard(issuingBank: IssuingBank) {
         repository.addCard(
             CreditCard(
+                id = -1L,
                 cardNumber = _cardNumber.value,
                 expiredDate = _expiredDate.value,
                 ownerName = _ownerName.value,

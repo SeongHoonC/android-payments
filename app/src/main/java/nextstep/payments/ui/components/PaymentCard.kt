@@ -138,6 +138,7 @@ private fun PaymentCardPreview() {
         Column {
             PaymentCard(
                 CreditCard(
+                    id = -1L,
                     cardNumber = "1234567890123456",
                     expiredDate = "1231",
                     ownerName = "홍길동",

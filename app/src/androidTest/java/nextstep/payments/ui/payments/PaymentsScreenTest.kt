@@ -1,19 +1,12 @@
 package nextstep.payments.ui.payments
 
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onChild
 import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onSibling
-import androidx.compose.ui.test.onSiblings
 import nextstep.payments.model.CreditCard
 import nextstep.payments.model.IssuingBank
 import org.junit.Rule
@@ -30,6 +23,7 @@ class PaymentsScreenTest {
             PaymentsScreen(
                 uiState = PaymentsUiState.Empty,
                 onAddCardClick = {},
+                onEditCardClick = {},
             )
         }
 
@@ -45,6 +39,7 @@ class PaymentsScreenTest {
     fun 카드_목록에_카드가_한_개_있을_때의_카드_추가_UI는_목록_하단에_노출된다() {
         // given
         val creditCard = CreditCard(
+            id = -1L,
             cardNumber = "1234567812345678",
             expiredDate = "1223",
             ownerName = "홍길동",
@@ -55,6 +50,7 @@ class PaymentsScreenTest {
         composeTestRule.setContent {
             PaymentsScreen(
                 uiState = PaymentsUiState.One(creditCard),
+                onEditCardClick = {},
                 onAddCardClick = {},
             )
         }
@@ -80,24 +76,27 @@ class PaymentsScreenTest {
         // given
         val creditCards = listOf(
             CreditCard(
+                id = 1L,
                 cardNumber = "1234567812345678",
                 expiredDate = "1223",
                 ownerName = "홍길동",
                 password = "1234",
-                IssuingBank.KB_CARD,
+                issuingBank = IssuingBank.KB_CARD,
             ),
             CreditCard(
+                id = 2L,
                 cardNumber = "1111222233334444",
                 expiredDate = "1223",
                 ownerName = "최성훈",
                 password = "1234",
-                IssuingBank.KAKAO_BANK,
+                issuingBank = IssuingBank.KAKAO_BANK,
             )
         )
 
         composeTestRule.setContent {
             PaymentsScreen(
                 uiState = PaymentsUiState.Many(creditCards),
+                onEditCardClick = {},
                 onAddCardClick = {},
             )
         }
