@@ -32,16 +32,12 @@ fun CardEditScreen(
     var showBottomSheet by remember { mutableStateOf(true) }
 
     val snackBarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.effect.collectLatest {
             when (it) {
                 is CardEditEffect.ShowError -> snackBarHostState.showSnackbar(it.message)
-                is CardEditEffect.OnCardEditSaved -> {
-                    navigateToPayments()
-                    snackBarHostState.showSnackbar(context.getString(R.string.card_edit_save_card_success))
-                }
+                is CardEditEffect.OnCardEditSaved -> navigateToPayments()
             }
         }
     }

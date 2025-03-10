@@ -15,9 +15,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -29,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 import nextstep.payments.R
 import nextstep.payments.model.CreditCard
 import nextstep.payments.model.IssuingBank
@@ -38,19 +43,24 @@ import nextstep.payments.ui.components.PaymentCardAddition
 import nextstep.payments.ui.newcard.NewCardActivity
 import nextstep.payments.ui.theme.PaymentsTheme
 
-
 @Composable
 fun PaymentsScreen(
     modifier: Modifier = Modifier,
     viewModel: PaymentsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     val newCardLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
         if (it.resultCode == Activity.RESULT_OK) {
             viewModel.fetchCards()
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(context.getString(R.string.payments_add_card_success))
+            }
         }
     }
 
@@ -59,16 +69,17 @@ fun PaymentsScreen(
     ) {
         if (it.resultCode == Activity.RESULT_OK) {
             viewModel.fetchCards()
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(context.getString(R.string.payments_edit_card_success))
+            }
         }
     }
 
-
-    val localContext = LocalContext.current
-    val onAddCardClick = { newCardLauncher.launch(NewCardActivity.getIntent(localContext)) }
+    val onAddCardClick = { newCardLauncher.launch(NewCardActivity.getIntent(context)) }
     val onEditCardClick = { cardId: Long ->
         cardEditLauncher.launch(
             CardEditActivity.getIntent(
-                context = localContext,
+                context = context,
                 cardId = cardId
             )
         )
@@ -78,6 +89,7 @@ fun PaymentsScreen(
         uiState = uiState,
         onAddCardClick = onAddCardClick,
         onEditCardClick = onEditCardClick,
+        snackbarHostState = snackbarHostState,
         modifier = modifier
     )
 }
@@ -85,6 +97,7 @@ fun PaymentsScreen(
 @Composable
 fun PaymentsScreen(
     uiState: PaymentsUiState,
+    snackbarHostState: SnackbarHostState,
     onAddCardClick: () -> Unit,
     onEditCardClick: (id: Long) -> Unit,
     modifier: Modifier = Modifier,
@@ -92,11 +105,13 @@ fun PaymentsScreen(
     when (uiState) {
         is PaymentsUiState.Empty -> PaymentsEmptyScreen(
             onAddCardClick = onAddCardClick,
+            snackbarHostState = snackbarHostState,
             modifier = modifier
         )
 
         is PaymentsUiState.One -> PaymentsOneScreen(
             uiState = uiState,
+            snackbarHostState = snackbarHostState,
             onAddCardClick = onAddCardClick,
             onCardClick = onEditCardClick,
             modifier = modifier
@@ -104,6 +119,7 @@ fun PaymentsScreen(
 
         is PaymentsUiState.Many -> PaymentsManyScreen(
             uiState = uiState,
+            snackbarHostState = snackbarHostState,
             onAddCardClick = onAddCardClick,
             onCardClick = onEditCardClick,
             modifier = modifier
@@ -113,12 +129,14 @@ fun PaymentsScreen(
 
 @Composable
 private fun PaymentsEmptyScreen(
+    snackbarHostState: SnackbarHostState,
     onAddCardClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
         modifier = modifier,
-        topBar = { PaymentsTopBar(isAddable = false) }
+        topBar = { PaymentsTopBar(isAddable = false) },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
         Column(
             Modifier
@@ -141,13 +159,15 @@ private fun PaymentsEmptyScreen(
 @Composable
 private fun PaymentsOneScreen(
     uiState: PaymentsUiState.One,
+    snackbarHostState: SnackbarHostState,
     onAddCardClick: () -> Unit,
     onCardClick: (id: Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
         modifier = modifier,
-        topBar = { PaymentsTopBar(isAddable = false) }
+        topBar = { PaymentsTopBar(isAddable = false) },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
         Column(
             Modifier
@@ -170,13 +190,15 @@ private fun PaymentsOneScreen(
 @Composable
 private fun PaymentsManyScreen(
     uiState: PaymentsUiState.Many,
+    snackbarHostState: SnackbarHostState,
     onAddCardClick: () -> Unit,
     onCardClick: (id: Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
         modifier = modifier,
-        topBar = { PaymentsTopBar(isAddable = true, onAddClick = onAddCardClick) }
+        topBar = { PaymentsTopBar(isAddable = true, onAddClick = onAddCardClick) },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
         LazyColumn(
             horizontalAlignment = CenterHorizontally,
@@ -197,7 +219,7 @@ private fun PaymentsManyScreen(
 @Composable
 private fun Preview1() {
     PaymentsTheme {
-        PaymentsEmptyScreen(onAddCardClick = {})
+        PaymentsEmptyScreen(onAddCardClick = {}, snackbarHostState = SnackbarHostState())
     }
 }
 
@@ -216,6 +238,7 @@ private fun Preview2() {
                     issuingBank = IssuingBank.HANA_CARD,
                 )
             ),
+            snackbarHostState = SnackbarHostState(),
             onAddCardClick = {},
             onCardClick = {}
         )
@@ -247,6 +270,7 @@ private fun Preview3() {
                     ),
                 )
             ),
+            snackbarHostState = SnackbarHostState(),
             onAddCardClick = {},
             onCardClick = {}
         )
